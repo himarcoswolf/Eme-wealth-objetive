@@ -399,7 +399,7 @@ def main():
 
     with col3:
         # Proyección final con estrategia actual Y retorno referencia
-        final_con_ref = calcular_valor_futuro(patrimonio_inicial, aportacion_actual, horizonte_temporal, rentabilidad_fija_decimal)
+        final_con_ref = calcular_valor_futuro(patrimonio_inicial, aportacion_actual, horizonte_acumulacion, rentabilidad_fija_decimal)
         deficit = final_con_ref - objetivo_patrimonial
         st.metric(label=f"Proyección Actual (al {rentabilidad_fija_ref}%)", value=f"{final_con_ref:,.0f} €", delta=f"{deficit:,.0f} € vs Meta", help="Dónde acabarás si sigues exactamente como hoy.")
 
