@@ -272,55 +272,107 @@ def main():
         st.divider()
         
         st.header("2. El Objetivo: Tu Número de Libertad")
-        st.caption("Paso A: Definir cuánto capital necesitas acumular para financiar tu estilo de vida.")
+        st.caption("Configura las 3 Variables Maestras para definir tu plan.")
         
-        # Paso 1: Definición Cualitativa
-        goal_name = st.text_input("Nombre del Objetivo", value="Libertad Financiera", placeholder="Ej. Jubilación en la Playa")
+        # --- 1. INTENSIDAD ---
+        goal_name = st.text_input("Nombre del Objetivo", value="Libertad Financiera")
+        gasto_mensual_hoy = st.number_input("Gasto Mensual Deseado (Valor de Hoy)", value=3000.0, step=100.0, help="¿Cuánto cuesta tu estilo de vida a precios de hoy?")
+
+        # --- AJUSTES AVANZADOS (INFLACIÓN) ---
+        with st.expander("Ajustes Económicos (Inflación)", expanded=True):
+            inflacion = st.slider("Inflación Estimada (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
+            tasa_distribucion = st.slider("Rentabilidad en Distribución (%)", min_value=0.0, max_value=10.0, value=4.0, step=0.1, help="Rentabilidad que darán tus inversiones CUANDO YA ESTÉS GASTANDO EL DINERO (ej. Cartera Conservadora/Rentas).")
+
+        # --- 2. TEMPORALIDAD ---
+        st.subheader("Temporalidad")
+        tipo_objetivo = st.radio("¿Durante cuánto tiempo?", ["De por vida (Jubilación/FIRE)", "Temporal (Sabático/Proyecto)"], index=0)
         
-        # Paso 2: El Coste de Vida
-        st.subheader("¿Cuánto cuesta tu vida ideal?")
-        gasto_mensual_deseado = st.number_input("Gasto Mensual Deseado (€)", min_value=500.0, value=3000.0, step=100.0)
+        duracion_anos = 50 # Default para "De por vida"
+        if "Temporal" in tipo_objetivo:
+            duracion_anos = st.number_input("Duración del Sabático (Años)", min_value=1, max_value=30, value=2)
+
+        # --- 3. LEGADO ---
+        st.subheader("Legado (Capital Final)")
+        if "Temporal" in tipo_objetivo:
+            opcion_legado = st.radio("Al final del periodo...", ["Consumir Capital (Die with Zero)", "Preservar Capital (Vivir de Rentas)"], index=0)
+        else:
+             # Para Jubilación/FIRE, por defecto dejamos elegir, pero Preservar es lo standard para 4% rule.
+             opcion_legado = st.radio("Estrategia de Capital", ["Preservar Capital (Herencia/Rentas)", "Consumir Capital (Renta Vitalicia)"], index=0)
+
+        # --- 4. FACTOR TIEMPO (CUÁNDO EMPIEZA) ---
+        st.divider()
+        st.subheader("¿Cuándo empezamos?")
+        anos_para_empezar = st.number_input("Años hasta el inicio del Objetivo", min_value=1, max_value=40, value=10)
+
+
+        # --- CÁLCULO DEL TARGET (MOTOR LÓGICO) ---
         
-        # Paso 3: Rentabilidad (Regla del 4% o personalizada)
-        st.subheader("Escenario de Rentas")
-        tasa_retirada_segura = st.slider("Tasa de Retirada Segura (%)", min_value=1.0, max_value=8.0, value=4.0, step=0.1, help="Porcentaje de tu patrimonio que gastarás al año. Estándar: 4%.")
+        # Paso A: Ajuste Inflación (Valor Futuro del Gasto)
+        # Gasto Futuro = Gasto Hoy * (1 + Inf)^Años
+        gasto_mensual_futuro = gasto_mensual_hoy * ((1 + inflacion/100.0) ** anos_para_empezar)
         
-        # CÁLCULO DEL NÚMERO DE LIBERTAD (Target Wealth)
-        gasto_anual = gasto_mensual_deseado * 12
-        objetivo_patrimonial = gasto_anual / (tasa_retirada_segura / 100.0)
+        # Paso B: Cálculo del Capital Necesario (El Target) al INICIO de la fase de gasto
+        tasa_dist_decimal = tasa_distribucion / 100.0
+        tasa_mensual_dist = tasa_dist_decimal / 12
+        pmt = -gasto_mensual_futuro # Cash outflow needed
         
+        objetivo_patrimonial = 0.0
+        
+        if "Preservar" in opcion_legado:
+            # Fórmula Perpetuidad: Capital = Anual / Tasa
+            # Si tasa es 0, infinito (o muy grande)
+            if tasa_dist_decimal > 0:
+                # El gasto anual futuro
+                objetivo_patrimonial = (gasto_mensual_futuro * 12) / tasa_dist_decimal
+            else:
+                objetivo_patrimonial = gasto_mensual_futuro * 12 * duracion_anos # Sin rentabilidad, solo cash
+        else:
+            # Consumir Capital -> Fórmula de Valor Presente de una Anualidad (PV)
+            # Queremos saber cuánto dinero tener HOY (en el futuro T=AñosInicio) para pagar la serie.
+            meses_duracion = duracion_anos * 12
+            if tasa_dist_decimal > 0:
+                objetivo_patrimonial = npf.pv(rate=tasa_mensual_dist, nper=meses_duracion, pmt=pmt, fv=0)
+            else:
+                objetivo_patrimonial = gasto_mensual_futuro * meses_duracion
+
+        # UI DE RESULTADOS EN SIDEBAR
         st.markdown(f"""
-        <div style="background-color: #E8F8F5; padding: 10px; border-radius: 5px; border-left: 5px solid #1ABC9C; margin-bottom: 20px;">
-            <small style="color: #16A085; font-weight: bold;">META PATRIMONIAL (Target)</small>
+        <div style="background-color: #E8F8F5; padding: 15px; border-radius: 8px; border-left: 5px solid #1ABC9C; margin-bottom: 20px;">
+            <small style="color: #16A085; font-weight: bold;">META AJUSTADA A INFLACIÓN</small>
             <h3 style="margin:0; color: #0E6251;">{objetivo_patrimonial:,.0f} €</h3>
-            <small style="color: #555;">Necesitas esto acumulado para generar {gasto_mensual_deseado:,}€/mes al {tasa_retirada_segura}%.</small>
+            <div style="margin-top: 5px; font-size: 0.85em; color: #444;">
+                <b>El Gasto Real:</b><br>
+                {gasto_mensual_hoy:,.0f}€ hoy serán <b>{gasto_mensual_futuro:,.0f}€</b> dentro de {anos_para_empezar} años (por inflación).
+            </div>
         </div>
         """, unsafe_allow_html=True)
+
         
         st.divider()
 
+        # --- 5. ESFUERZO DE AHORRO ---
         st.header("3. El Camino: Desde Kubera")
-        st.caption("Ve a la sección Fast Forward de Kubera para estimar estos datos.")
-        
-        horizonte_temporal = st.slider("Horizonte (Años)", min_value=1, max_value=50, value=20)
         
         aportacion_actual = st.number_input("Aportación Mensual Actual (€)", min_value=0.0, value=1000.0, step=100.0)
-        inflacion = st.slider("Inflación Estimada (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
+        # Nota: La inflación ya se pidió arriba en Ajustes Avanzados
 
         st.divider()
         st.header("Parámetro de Mercado")
-        rentabilidad_fija_ref = st.number_input("Rentabilidad Esperada Inversiones (Ref) %", min_value=0.0, max_value=20.0, value=7.0, step=0.5, help="La rentabilidad media que esperas de los mercados (ej. MSCI World 7-8%).")
+        rentabilidad_fija_ref = st.number_input("Rentabilidad Esperada Inversiones (Ref) %", min_value=0.0, max_value=20.0, value=7.0, step=0.5, help="La rentabilidad media que esperas de los mercados durante la fase de ACUMULACIÓN.")
 
     # --- CÁLCULOS ---
     
+    # Usamos 'anos_para_empezar' como el horizonte de acumulación
+    horizonte_acumulacion = anos_para_empezar
+    
     # 1. Escenario Rentabilidad Necesaria
     # Incógnita: Tasa
-    cagr_necesario = calcular_cagr_necesario(patrimonio_inicial, objetivo_patrimonial, horizonte_temporal, aportacion_actual)
+    cagr_necesario = calcular_cagr_necesario(patrimonio_inicial, objetivo_patrimonial, horizonte_acumulacion, aportacion_actual)
     
     # 2. Escenario Ahorro Necesario
-    # Incógnita: PMT, dado una tasa fija (ej. 7% o lo que puso el usuario)
+    # Incógnita: PMT
     rentabilidad_fija_decimal = rentabilidad_fija_ref / 100.0
-    ahorro_necesario_mensual = calcular_aportacion_necesaria(patrimonio_inicial, objetivo_patrimonial, horizonte_temporal, rentabilidad_fija_decimal)
+    ahorro_necesario_mensual = calcular_aportacion_necesaria(patrimonio_inicial, objetivo_patrimonial, horizonte_acumulacion, rentabilidad_fija_decimal)
     gap_ahorro = ahorro_necesario_mensual - aportacion_actual if ahorro_necesario_mensual else 0
 
     # --- DASHBOARD PRINCIPAL ---
@@ -353,10 +405,10 @@ def main():
 
 
     # --- GRÁFICOS ---
-    st.markdown("### Proyección Patrimonial")
+    st.markdown("### Proyección Patrimonial (Fase Acumulación)")
     
     # Generar datos año a año para gráfico
-    years_axis = list(range(horizonte_temporal + 1))
+    years_axis = list(range(horizonte_acumulacion + 1))
     
     # Serie A: Estrategia Actual (usando la tasa de referencia fija como "lo que pasaría normalmente")
     # O podríamos usar una tasa conservadora del 3%. Usaremos la referencia del usuario (7%) como "Baseline de mercado"
@@ -399,10 +451,10 @@ def main():
                              line=dict(color='#95A5A6', width=2), fill='tozeroy', fillcolor='rgba(149, 165, 166, 0.1)'))
     
     # Linea Meta Horizontal
-    fig.add_hline(y=objetivo_patrimonial, line_dash="dot", annotation_text=f"Objetivo: {objetivo_patrimonial/1000000:.1f}M€", annotation_position="top right", line_color="#E74C3C")
+    fig.add_hline(y=objetivo_patrimonial, line_dash="dot", annotation_text=f"Meta: {objetivo_patrimonial/1000000:.2f}M€", annotation_position="top right", line_color="#E74C3C")
 
     fig.update_layout(
-        title="Evolución del Patrimonio Neto",
+        title=f"Evolución durante los próximos {horizonte_acumulacion} años",
         xaxis_title="Años Proyectados",
         yaxis_title="Patrimonio (€)",
         template="plotly_white",
@@ -424,8 +476,8 @@ def main():
             data_resumen = {
                 'patrimonio_actual': f"{patrimonio_inicial:,.2f} €",
                 'objetivo_valor': f"{objetivo_patrimonial:,.2f} €",
-                'gasto_mensual': f"{gasto_mensual_deseado:,.2f} €",
-                'horizonte': horizonte_temporal,
+                'gasto_mensual': f"{gasto_mensual_hoy:,.2f} € (Hoy)",
+                'horizonte': horizonte_acumulacion,
                 'inflacion': f"{inflacion}%",
                 'ahorro_actual': f"{aportacion_actual:,.2f} €/mes",
                 'cagr_necesario': f"{cagr_necesario*100:.2f}%" if cagr_necesario else "Inviable",
