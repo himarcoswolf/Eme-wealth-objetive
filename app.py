@@ -19,11 +19,11 @@ st.set_page_config(
 # --- ESTILOS CSS (NATURAL LUXURY) ---
 st.markdown("""
 <style>
-    /* Importar fuente elegante si es posible, o usar sistema */
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+    /* Importar fuente Poppins */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Outfit', sans-serif;
+        font-family: 'Poppins', sans-serif;
     }
 
     /* Sidebar High Contrast */
@@ -72,7 +72,7 @@ st.markdown("""
     
     /* Botones */
     .stButton>button {
-        background-color: #2C3E50;
+        background-color: #111827; /* Negro EME */
         color: white;
         border-radius: 8px;
         border: none;
@@ -81,7 +81,7 @@ st.markdown("""
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background-color: #34495E;
+        background-color: #374151;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
@@ -114,9 +114,6 @@ def calcular_cagr_necesario(present_value, target_value, years, monthly_contribu
     Usa numpy_financial.rate: rate(nper, pmt, pv, fv)
     """
     months = years * 12
-    # Nota: pmt y pv suelen ser negativos en finanzas (cash outflows), fv positivo.
-    # Aquí asumimos que PV es dinero que ya tienes (negativo desde la vista del flujo del contrato)
-    # y PMT son pagos (negativos).
     
     try:
         monthly_rate = npf.rate(nper=months, pmt=-monthly_contribution, pv=-present_value, fv=target_value)
@@ -146,14 +143,18 @@ def calcular_aportacion_necesaria(present_value, target_value, years, annual_rat
 def generar_pdf(data_resumen, df_proyeccion):
     """
     Genera un informe PDF con FPDF.
-    data_resumen: dicc con claves 'cliente', 'objetivo', 'patrimonio_actual', 'estrategia', etc.
-    df_proyeccion: dataframe con la tabla año a año de los primeros 5 y último.
     """
     class PDF(FPDF):
         def header(self):
+            # Logo
+            try:
+                self.image("logo.png", 10, 8, 33)
+            except:
+                pass # Si no hay logo, no poner nada
+                
             # Título simple
             self.set_font('Helvetica', 'B', 16)
-            self.cell(0, 10, 'Informe EME Wealth Objetive', 0, 1, 'C')
+            self.cell(0, 10, 'Informe EME Wealth', 0, 1, 'C')
             self.ln(10)
             
         def footer(self):
@@ -167,38 +168,36 @@ def generar_pdf(data_resumen, df_proyeccion):
 
     # 1. Resumen Situación
     pdf.set_font("Helvetica", 'B', 14)
-    pdf.cell(0, 10, "1. Resumen de Situación", 0, 1, 'L')
+    pdf.cell(0, 10, "1. Meta Patrimonial", 0, 1, 'L')
     pdf.set_font("Helvetica", size=11)
     
     pdf.cell(50, 8, f"Patrimonio Actual:", 0, 0)
     pdf.cell(0, 8, f"{data_resumen['patrimonio_actual']}", 0, 1)
     
     pdf.cell(50, 8, f"Objetivo Financiero:", 0, 0)
-    pdf.cell(0, 8, f"{data_resumen['objetivo_valor']} en {data_resumen['horizonte']} años", 0, 1)
+    pdf.cell(0, 8, f"{data_resumen['objetivo_valor']} (para {data_resumen['gasto_mensual']})", 0, 1)
     
-    pdf.cell(50, 8, f"Inflación Estimada:", 0, 0)
-    pdf.cell(0, 8, f"{data_resumen['inflacion']}", 0, 1)
     pdf.ln(5)
 
     # 2. Hoja de Ruta (Resultados)
     pdf.set_font("Helvetica", 'B', 14)
-    pdf.cell(0, 10, "2. Hoja de Ruta - Escenarios", 0, 1, 'L')
+    pdf.cell(0, 10, "2. Hoja de Ruta de Inversión", 0, 1, 'L')
     pdf.set_font("Helvetica", size=11)
 
-    pdf.cell(0, 8, "Escenario A: Rentabilidad Requerida", 0, 1)
+    pdf.cell(0, 8, "Rentabilidad Requerida (CAGR)", 0, 1)
     pdf.set_font("Helvetica", '', 11)
-    pdf.multi_cell(0, 6, f"Para alcanzar {data_resumen['objetivo_valor']} manteniendo su ahorro actual de {data_resumen['ahorro_actual']}, sus inversiones deben generar un retorno anual compuesto (CAGR) de: {data_resumen['cagr_necesario']}")
+    pdf.multi_cell(0, 6, f"Para alcanzar {data_resumen['objetivo_valor']} en {data_resumen['horizonte']} años manteniendo su ahorro actual, sus inversiones necesitan un: {data_resumen['cagr_necesario']}")
     pdf.ln(3)
     
     pdf.set_font("Helvetica", 'B', 11)
-    pdf.cell(0, 8, "Escenario B: Esfuerzo de Ahorro", 0, 1)
+    pdf.cell(0, 8, "Esfuerzo de Ahorro", 0, 1)
     pdf.set_font("Helvetica", '', 11)
-    pdf.multi_cell(0, 6, f"Si asumimos una rentabilidad fija del {data_resumen['rentabilidad_fija']}, debería aumentar su ahorro mensual a: {data_resumen['ahorro_necesario']} (Gap: {data_resumen['gap_ahorro']})")
+    pdf.multi_cell(0, 6, f"Si asumimos una rentabilidad de mercado fija del {data_resumen['rentabilidad_fija']}, el ahorro mensual debería ser: {data_resumen['ahorro_necesario']}")
     pdf.ln(10)
 
     # 3. Proyección Tabla Temprana
     pdf.set_font("Helvetica", 'B', 14)
-    pdf.cell(0, 10, "3. Proyección Patrimonial (Primeros Años y Final)", 0, 1, 'L')
+    pdf.cell(0, 10, "3. Proyección Año a Año", 0, 1, 'L')
     pdf.set_font("Helvetica", size=10)
     
     # Cabecera tabla
@@ -222,12 +221,18 @@ def generar_pdf(data_resumen, df_proyeccion):
 # --- MAIN APP LOGIC ---
 
 def main():
-    st.title("EME Wealth Objetive")
-    st.markdown("Planificador de patrimonio y viabilidad financiera.")
-
-    # --- SIDEBAR: INPUT DATOS ---
+    # Load Logo for Sidebar
+    # Assuming logo.png is in the same directory
+    
     with st.sidebar:
+        try:
+            st.image("logo.png", use_container_width=True)
+            st.divider()
+        except:
+            st.title("EME Wealth") # Fallback
+
         st.header("1. Situación Actual")
+
         
         input_mode = st.radio("Método de Entrada", ["Manual", "Carga CSV (Kubera)"], index=0)
         
@@ -294,16 +299,17 @@ def main():
         
         st.divider()
 
-        st.header("3. El Camino: ¿Cómo llegamos?")
-        st.caption("Paso B: Definir el tiempo y esfuerzo para alcanzar la Meta.")
+        st.header("3. El Camino: Desde Kubera")
+        st.caption("Ve a la sección Fast Forward de Kubera para estimar estos datos.")
+        
         horizonte_temporal = st.slider("Horizonte (Años)", min_value=1, max_value=50, value=20)
         
         aportacion_actual = st.number_input("Aportación Mensual Actual (€)", min_value=0.0, value=1000.0, step=100.0)
         inflacion = st.slider("Inflación Estimada (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
 
         st.divider()
-        st.header("Parámetro Comparativo")
-        rentabilidad_fija_ref = st.number_input("Rentabilidad Mercado (Ref) %", min_value=0.0, max_value=20.0, value=7.0, step=0.5)
+        st.header("Parámetro de Mercado")
+        rentabilidad_fija_ref = st.number_input("Rentabilidad Esperada Inversiones (Ref) %", min_value=0.0, max_value=20.0, value=7.0, step=0.5, help="La rentabilidad media que esperas de los mercados (ej. MSCI World 7-8%).")
 
     # --- CÁLCULOS ---
     
@@ -329,7 +335,7 @@ def main():
         if cagr_necesario is not None:
             cagr_display = cagr_necesario * 100
             diff_ref = cagr_display - rentabilidad_fija_ref
-            st.metric(label="Rentabilidad Requerida (CAGR)", value=f"{cagr_display:.2f}%", delta=f"{diff_ref:.2f}% vs Mercado", delta_color="inverse", help="Rentabilidad anual compuesta que deben generar tus inversiones para llegar a la Meta en el tiempo definido.")
+            st.metric(label="Rentabilidad Inversión Requerida", value=f"{cagr_display:.2f}%", delta=f"{diff_ref:.2f}% vs Mercado", delta_color="inverse", help="Rentabilidad anual compuesta que deben generar tus inversiones para llegar a la Meta en el tiempo definido.")
         else:
             st.metric(label="Rentabilidad Requerida", value="Inviable")
 
@@ -413,11 +419,12 @@ def main():
     # Preparar datos para reporte
     col_pdf, _ = st.columns([1, 4])
     with col_pdf:
-        if st.button("📄 Exportar Objetive EME (PDF)"):
+        if st.button("📄 Exportar Informe (PDF)"):
             # Datos resumen
             data_resumen = {
                 'patrimonio_actual': f"{patrimonio_inicial:,.2f} €",
                 'objetivo_valor': f"{objetivo_patrimonial:,.2f} €",
+                'gasto_mensual': f"{gasto_mensual_deseado:,.2f} €",
                 'horizonte': horizonte_temporal,
                 'inflacion': f"{inflacion}%",
                 'ahorro_actual': f"{aportacion_actual:,.2f} €/mes",
@@ -437,23 +444,18 @@ def main():
             
             pdf = generar_pdf(data_resumen, df_export)
             
-            # Output PDF to bytes
-            # FPDF output to string is default, for bytes we use output(dest='S').encode('latin-1') in older versions
-            # Or simplified approach for fpdf2:
+            # Fix para FPDF2 output
             try:
-                # FPDF2
-                pdf_bytes = pdf.output(dest='S') # Returns bytes in FPDF2 if defaults? Actually returns bytearray usually or string.
-                # Let's use a safer approach for FPDF (bytearray)
-                if isinstance(pdf_bytes, str):
-                    pdf_bytes = pdf_bytes.encode('latin-1')
+                # Intento 1: bytes directo (nuevo FPDF2)
+                pdf_bytes = bytes(pdf.output())
             except:
-                # FPDF 1.7 style fallback
+                # Intento 2: Compatible antiguas versiones
                 pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
             st.download_button(
-                label="Descargar PDF",
+                label="Descargar PDF Final",
                 data=pdf_bytes,
-                file_name="eme_wealth_objetive_report.pdf",
+                file_name="eme_wealth_report.pdf",
                 mime="application/pdf"
             )
 
