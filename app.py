@@ -26,30 +26,48 @@ st.markdown("""
         font-family: 'Outfit', sans-serif;
     }
 
-    /* Fondo limpio y minimalista */
+    /* Sidebar High Contrast */
+    [data-testid="stSidebar"] {
+        background-color: #F8F9FA; /* Blanco humo muy claro */
+        border-right: 1px solid #E5E7EB;
+    }
+    
+    /* Forzar color de texto oscuro en sidebar */
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stMarkdown {
+        color: #111827 !important; /* Gris muy oscuro, casi negro */
+        font-weight: 500;
+    }
+    
+    /* Inputs en sidebar */
+    [data-testid="stSidebar"] input {
+        color: #111827 !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #D1D5DB !important;
+    }
+
+    /* Fondo limpio y minimalista principal */
     .stApp {
-        background-color: #FAFAF9; /* Un tono crema muy suave/blanco */
-        color: #2C3E50;
+        background-color: #FFFFFF; 
+        color: #111827;
     }
 
     /* Títulos */
     h1, h2, h3 {
-        color: #1A1A1A;
-        font-weight: 600;
+        color: #111827 !important;
+        font-weight: 700;
     }
     
-    /* Sidebar */
-    .css-1d391kg {
-        background-color: #F0F2F6;
-    }
-
     /* KPI Cards Custom */
     div.stMetric {
-        background-color: #FFFFFF;
-        border: 1px solid #E0E0E0;
-        border-radius: 10px;
+        background-color: #F3F4F6; /* Gris suave contraste */
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
         padding: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        color: #111827;
+    }
+    
+    label {
+        color: #374151 !important; /* Gris oscuro para labels generales */
     }
     
     /* Botones */
