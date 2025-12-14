@@ -239,7 +239,7 @@ def main():
         patrimonio_inicial = 0.0
         
         if input_mode == "Manual":
-            patrimonio_inicial = st.number_input("Patrimonio Neto Actual (€)", min_value=0.0, value=100000.0, step=1000.0, format="%.2f")
+            patrimonio_inicial = st.number_input("Patrimonio Neto Actual (€)", min_value=0.0, value=0.0, step=1000.0, format="%.2f")
             
         else: # CSV Mode
             uploaded_file = st.file_uploader("Subir CSV de Activos", type=['csv'])
@@ -275,8 +275,8 @@ def main():
         st.caption("Configura las 3 Variables Maestras para definir tu plan.")
         
         # --- 1. INTENSIDAD ---
-        goal_name = st.text_input("Nombre del Objetivo", value="Libertad Financiera")
-        gasto_mensual_hoy = st.number_input("Gasto Mensual Deseado (Valor de Hoy)", value=3000.0, step=100.0, help="¿Cuánto cuesta tu estilo de vida a precios de hoy?")
+        goal_name = st.text_input("Nombre del Objetivo", value="", placeholder="Ej. Jubilación, Sabático...")
+        gasto_mensual_hoy = st.number_input("Gasto Mensual Deseado (Valor de Hoy)", value=0.0, step=100.0, help="¿Cuánto cuesta tu estilo de vida a precios de hoy?")
 
         # --- AJUSTES AVANZADOS (INFLACIÓN) ---
         with st.expander("Ajustes Económicos (Inflación)", expanded=True):
@@ -302,7 +302,7 @@ def main():
         # --- 4. FACTOR TIEMPO (CUÁNDO EMPIEZA) ---
         st.divider()
         st.subheader("¿Cuándo empezamos?")
-        anos_para_empezar = st.number_input("Años hasta el inicio del Objetivo", min_value=1, max_value=40, value=10)
+        anos_para_empezar = st.number_input("Años hasta el inicio del Objetivo", min_value=0, max_value=40, value=0)
 
 
         # --- CÁLCULO DEL TARGET (MOTOR LÓGICO) ---
@@ -353,7 +353,7 @@ def main():
         # --- 5. ESFUERZO DE AHORRO ---
         st.header("3. El Camino: Desde Kubera")
         
-        aportacion_actual = st.number_input("Aportación Mensual Actual (€)", min_value=0.0, value=1000.0, step=100.0)
+        aportacion_actual = st.number_input("Aportación Mensual Actual (€)", min_value=0.0, value=0.0, step=100.0)
         # Nota: La inflación ya se pidió arriba en Ajustes Avanzados
 
         st.divider()
