@@ -266,7 +266,8 @@ def main():
         
         st.divider()
         
-        st.header("2. El Objetivo de Vida")
+        st.header("2. El Objetivo: Tu Número de Libertad")
+        st.caption("Paso A: Definir cuánto capital necesitas acumular para financiar tu estilo de vida.")
         
         # Paso 1: Definición Cualitativa
         goal_name = st.text_input("Nombre del Objetivo", value="Libertad Financiera", placeholder="Ej. Jubilación en la Playa")
@@ -276,30 +277,33 @@ def main():
         gasto_mensual_deseado = st.number_input("Gasto Mensual Deseado (€)", min_value=500.0, value=3000.0, step=100.0)
         
         # Paso 3: Rentabilidad (Regla del 4% o personalizada)
-        st.subheader("Rentabilidad del Capital")
-        tasa_retirada_segura = st.slider("Rentabilidad Estimada de Distribución (%)", min_value=1.0, max_value=8.0, value=4.0, step=0.1, help="Regla general: 4% es conservador/estándar.")
+        st.subheader("Escenario de Rentas")
+        tasa_retirada_segura = st.slider("Tasa de Retirada Segura (%)", min_value=1.0, max_value=8.0, value=4.0, step=0.1, help="Porcentaje de tu patrimonio que gastarás al año. Estándar: 4%.")
         
         # CÁLCULO DEL NÚMERO DE LIBERTAD (Target Wealth)
         gasto_anual = gasto_mensual_deseado * 12
         objetivo_patrimonial = gasto_anual / (tasa_retirada_segura / 100.0)
         
         st.markdown(f"""
-        <div style="background-color: #E8F8F5; padding: 10px; border-radius: 5px; border-left: 5px solid #1ABC9C;">
-            <small>Patrimonio Necesario (Calculado)</small>
-            <h3 style="margin:0; color: #16A085;">{objetivo_patrimonial:,.0f} €</h3>
+        <div style="background-color: #E8F8F5; padding: 10px; border-radius: 5px; border-left: 5px solid #1ABC9C; margin-bottom: 20px;">
+            <small style="color: #16A085; font-weight: bold;">META PATRIMONIAL (Target)</small>
+            <h3 style="margin:0; color: #0E6251;">{objetivo_patrimonial:,.0f} €</h3>
+            <small style="color: #555;">Necesitas esto acumulado para generar {gasto_mensual_deseado:,}€/mes al {tasa_retirada_segura}%.</small>
         </div>
         """, unsafe_allow_html=True)
         
         st.divider()
 
+        st.header("3. El Camino: ¿Cómo llegamos?")
+        st.caption("Paso B: Definir el tiempo y esfuerzo para alcanzar la Meta.")
         horizonte_temporal = st.slider("Horizonte (Años)", min_value=1, max_value=50, value=20)
         
         aportacion_actual = st.number_input("Aportación Mensual Actual (€)", min_value=0.0, value=1000.0, step=100.0)
-        inflacion = st.slider("Inflación Estimada (%) - Ajuste visual", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
+        inflacion = st.slider("Inflación Estimada (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
 
         st.divider()
-        st.header("Parámetros Cálculo")
-        rentabilidad_fija_ref = st.number_input("Ref. Rentabilidad Fija (%) para calculo de Ahorro", min_value=0.0, max_value=20.0, value=7.0, step=0.5)
+        st.header("Parámetro Comparativo")
+        rentabilidad_fija_ref = st.number_input("Rentabilidad Mercado (Ref) %", min_value=0.0, max_value=20.0, value=7.0, step=0.5)
 
     # --- CÁLCULOS ---
     
@@ -316,7 +320,8 @@ def main():
     # --- DASHBOARD PRINCIPAL ---
     
     # KPI ROW
-    st.subheader(f"Análisis: {goal_name}")
+    st.title(f"Plan: {goal_name}")
+    st.markdown("### 1. La Ecuación del Éxito")
     
     col1, col2, col3 = st.columns(3)
     
@@ -324,14 +329,13 @@ def main():
         if cagr_necesario is not None:
             cagr_display = cagr_necesario * 100
             diff_ref = cagr_display - rentabilidad_fija_ref
-            st.metric(label="Rentabilidad Anual Necesaria", value=f"{cagr_display:.2f}%", delta=f"{diff_ref:.2f}% vs Ref", delta_color="inverse")
+            st.metric(label="Rentabilidad Requerida (CAGR)", value=f"{cagr_display:.2f}%", delta=f"{diff_ref:.2f}% vs Mercado", delta_color="inverse", help="Rentabilidad anual compuesta que deben generar tus inversiones para llegar a la Meta en el tiempo definido.")
         else:
-            st.metric(label="Rentabilidad Anual Necesaria", value="Inviable")
-            st.caption("Con los parámetros actuales es imposible matemáticamente.")
+            st.metric(label="Rentabilidad Requerida", value="Inviable")
 
     with col2:
         if ahorro_necesario_mensual is not None:
-            st.metric(label="Ahorro Mensual Ideal (al 7%)", value=f"{ahorro_necesario_mensual:,.0f} €", delta=f"-{gap_ahorro:,.0f} € Gap", delta_color="normal")
+            st.metric(label="Ahorro Mensual Ideal", value=f"{ahorro_necesario_mensual:,.0f} €", delta=f"-{gap_ahorro:,.0f} € Gap", delta_color="normal", help="Cuánto deberías ahorrar si tus inversiones solo dieran la rentabilidad de mercado.")
         else:
             st.metric(label="Ahorro Mensual Ideal", value="N/A")
 
@@ -339,7 +343,7 @@ def main():
         # Proyección final con estrategia actual Y retorno referencia
         final_con_ref = calcular_valor_futuro(patrimonio_inicial, aportacion_actual, horizonte_temporal, rentabilidad_fija_decimal)
         deficit = final_con_ref - objetivo_patrimonial
-        st.metric(label=f"Proyección Final (al {rentabilidad_fija_ref}%)", value=f"{final_con_ref:,.0f} €", delta=f"{deficit:,.0f} € vs Objetivo")
+        st.metric(label=f"Proyección Actual (al {rentabilidad_fija_ref}%)", value=f"{final_con_ref:,.0f} €", delta=f"{deficit:,.0f} € vs Meta", help="Dónde acabarás si sigues exactamente como hoy.")
 
 
     # --- GRÁFICOS ---
