@@ -107,7 +107,7 @@ def calcular_cagr_necesario(present_value, target_value, years, monthly_contribu
             return None
         annual_rate = (1 + monthly_rate) ** 12 - 1
         return annual_rate
-    exceptException:
+    except Exception:
         return None
 
 def calcular_aportacion_necesaria(present_value, target_value, years, annual_rate_fixed):
