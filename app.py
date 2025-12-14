@@ -248,8 +248,32 @@ def main():
         
         st.divider()
         
-        st.header("2. El Objetivo")
-        objetivo_patrimonial = st.number_input("Objetivo Patrimonial (€)", min_value=1000.0, value=1000000.0, step=50000.0)
+        st.header("2. El Objetivo de Vida")
+        
+        # Paso 1: Definición Cualitativa
+        goal_name = st.text_input("Nombre del Objetivo", value="Libertad Financiera", placeholder="Ej. Jubilación en la Playa")
+        
+        # Paso 2: El Coste de Vida
+        st.subheader("¿Cuánto cuesta tu vida ideal?")
+        gasto_mensual_deseado = st.number_input("Gasto Mensual Deseado (€)", min_value=500.0, value=3000.0, step=100.0)
+        
+        # Paso 3: Rentabilidad (Regla del 4% o personalizada)
+        st.subheader("Rentabilidad del Capital")
+        tasa_retirada_segura = st.slider("Rentabilidad Estimada de Distribución (%)", min_value=1.0, max_value=8.0, value=4.0, step=0.1, help="Regla general: 4% es conservador/estándar.")
+        
+        # CÁLCULO DEL NÚMERO DE LIBERTAD (Target Wealth)
+        gasto_anual = gasto_mensual_deseado * 12
+        objetivo_patrimonial = gasto_anual / (tasa_retirada_segura / 100.0)
+        
+        st.markdown(f"""
+        <div style="background-color: #E8F8F5; padding: 10px; border-radius: 5px; border-left: 5px solid #1ABC9C;">
+            <small>Patrimonio Necesario (Calculado)</small>
+            <h3 style="margin:0; color: #16A085;">{objetivo_patrimonial:,.0f} €</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.divider()
+
         horizonte_temporal = st.slider("Horizonte (Años)", min_value=1, max_value=50, value=20)
         
         aportacion_actual = st.number_input("Aportación Mensual Actual (€)", min_value=0.0, value=1000.0, step=100.0)
@@ -274,7 +298,7 @@ def main():
     # --- DASHBOARD PRINCIPAL ---
     
     # KPI ROW
-    st.subheader("Análisis de Viabilidad")
+    st.subheader(f"Análisis: {goal_name}")
     
     col1, col2, col3 = st.columns(3)
     
@@ -335,7 +359,7 @@ def main():
     fig = go.Figure()
     
     # Linea Objetivo
-    fig.add_trace(go.Scatter(x=years_axis, y=serie_objetivo, mode='lines', name='Senda Objetivo (Ideal)',
+    fig.add_trace(go.Scatter(x=years_axis, y=serie_objetivo, mode='lines', name=f'Senda {goal_name} (Ideal)',
                              line=dict(color='#27AE60', width=3, dash='dash'))) # Verde EME
     
     # Linea Mercado/Actual
@@ -347,7 +371,7 @@ def main():
                              line=dict(color='#95A5A6', width=2), fill='tozeroy', fillcolor='rgba(149, 165, 166, 0.1)'))
     
     # Linea Meta Horizontal
-    fig.add_hline(y=objetivo_patrimonial, line_dash="dot", annotation_text="Objetivo", annotation_position="top right", line_color="#E74C3C")
+    fig.add_hline(y=objetivo_patrimonial, line_dash="dot", annotation_text=f"Objetivo: {objetivo_patrimonial/1000000:.1f}M€", annotation_position="top right", line_color="#E74C3C")
 
     fig.update_layout(
         title="Evolución del Patrimonio Neto",
